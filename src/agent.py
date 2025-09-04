@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import pathlib
 
 class SimpleAgent:
-    def __init__(self):
+    def __init__(self, session_id: str = None):
         """Initialize the agent with Gemini configuration"""
         # Get absolute path to .env file
         env_path = pathlib.Path(os.path.dirname(os.path.dirname(__file__))) / '.env'
@@ -37,6 +37,9 @@ class SimpleAgent:
         
         # Initialize conversation history
         self.history: List[Dict[str, str]] = []
+        
+        # Store session ID for tracking
+        self.session_id = session_id
         
         # Maximum history length to maintain context
         self.max_history = 10
