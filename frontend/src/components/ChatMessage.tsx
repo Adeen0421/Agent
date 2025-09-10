@@ -403,16 +403,49 @@ function FormattedMessage({ content }: FormattedMessageProps) {
 
 export default function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
+  const [copied, setCopied] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [disliked, setDisliked] = useState(false);
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
+  const handleLike = () => {
+    setLiked(!liked);
+    if (disliked) setDisliked(false);
+  };
+
+  const handleDislike = () => {
+    setDisliked(!disliked);
+    if (liked) setLiked(false);
+  };
+
+  const handleTryAgain = () => {
+    // This would trigger a retry of the last message
+    console.log('Try again clicked');
+  };
+
+  const handleShare = () => {
+    // This would share the conversation
+    console.log('Share clicked');
+  };
   
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-6`}>
       <div className={`flex gap-3 max-w-[80%] ${isUser ? 'flex-row-reverse' : 'flex-row'} items-start`}>
         {/* Avatar - positioned to align with the message bubble */}
-        <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
+        <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center self-start ${
           isUser 
             ? 'bg-gradient-to-br from-blue-500 via-cyan-500 to-teal-600 glow shadow-lg shadow-blue-500/40 avatar-user'
             : 'bg-gradient-to-br from-cyan-600 via-blue-600 to-teal-600 border border-blue-400/30 shadow-lg shadow-cyan-500/40 avatar-assistant'
-        }`} style={{ marginTop: '1.25rem' }}>
+        }`} style={{ marginTop: '1.5rem' }}>
           {isUser ? (
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -443,6 +476,85 @@ export default function ChatMessage({ message }: ChatMessageProps) {
                 <AnimatedFormattedMessage content={message.content} speed={10} />
               )}
             </div>
+            
+            {/* Action buttons for AI responses */}
+            {!isUser && (
+              <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/10">
+                <button
+                  onClick={copyToClipboard}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+                  title="Copy"
+                >
+                  {copied ? (
+                    <>
+                      <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-green-400">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+                
+                <button
+                  onClick={handleLike}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-all duration-200 ${
+                    liked 
+                      ? 'text-green-400 bg-green-400/10' 
+                      : 'text-gray-400 hover:text-green-400 hover:bg-green-400/10'
+                  }`}
+                  title="Like"
+                >
+                  <svg className="w-3.5 h-3.5" fill={liked ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V18m-7-8a2 2 0 01-2-2V5a2 2 0 012-2h3.343a2 2 0 011.414.586l.828.828A2 2 0 0014.657 5H17a2 2 0 012 2v3a2 2 0 01-2 2H7z" />
+                  </svg>
+                  <span>Like</span>
+                </button>
+                
+                <button
+                  onClick={handleDislike}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-all duration-200 ${
+                    disliked 
+                      ? 'text-red-400 bg-red-400/10' 
+                      : 'text-gray-400 hover:text-red-400 hover:bg-red-400/10'
+                  }`}
+                  title="Dislike"
+                >
+                  <svg className="w-3.5 h-3.5" fill={disliked ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.737 3h4.018c.163 0 .326.02.485.06L17 4m-7 10V6m7 8a2 2 0 012-2V5a2 2 0 00-2-2h-3.343a2 2 0 00-1.414.586l-.828.828A2 2 0 009.343 5H7a2 2 0 00-2 2v3a2 2 0 002 2h10z" />
+                  </svg>
+                  <span>Dislike</span>
+                </button>
+                
+                <button
+                  onClick={handleTryAgain}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-all duration-200"
+                  title="Try again"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Try again</span>
+                </button>
+                
+                <button
+                  onClick={handleShare}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 hover:text-cyan-400 hover:bg-cyan-400/10 rounded-lg transition-all duration-200"
+                  title="Share"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                  </svg>
+                  <span>Share</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

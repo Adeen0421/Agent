@@ -163,7 +163,7 @@ export default function ChatInterface() {
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col overflow-hidden">
           {/* Messages Container */}
-          <div className="flex-1 px-6 py-4 space-y-6">
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6" style={{ scrollbarGutter: 'stable' }}>
             {error && (
               <div className="bg-gradient-to-r from-red-900/20 to-red-800/20 border border-red-500/30 text-red-300 px-6 py-4 rounded-xl backdrop-blur-sm mb-6">
                 <div className="flex items-center gap-3">

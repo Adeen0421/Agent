@@ -37,7 +37,7 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
               onKeyPress={handleKeyPress}
               placeholder="Ask me anything..."
               disabled={isLoading}
-              className="relative w-full px-6 py-4 pr-14 bg-transparent border border-white/5 rounded-2xl text-white placeholder-gray-400/60 focus:outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400/20 resize-none transition-all duration-300 hover:border-white/10"
+              className="relative w-full px-6 py-4 pr-14 bg-transparent border border-white/5 rounded-2xl text-white placeholder-gray-400/60 focus:outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400/20 resize-none transition-all duration-300 hover:border-white/10 shadow-lg shadow-blue-900/30"
               rows={1}
               style={{
                 minHeight: '52px',
