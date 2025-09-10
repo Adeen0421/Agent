@@ -6,11 +6,13 @@ import CodeBlock from './CodeBlock';
 interface AnimatedFormattedMessageProps {
   content: string;
   speed?: number;
+  onComplete?: () => void;
 }
 
 export default function AnimatedFormattedMessage({ 
   content, 
-  speed = 10 
+  speed = 10,
+  onComplete
 }: AnimatedFormattedMessageProps) {
   const [displayedContent, setDisplayedContent] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -32,6 +34,7 @@ export default function AnimatedFormattedMessage({
       return () => clearTimeout(timer);
     } else if (!isComplete) {
       setIsComplete(true);
+      onComplete?.();
     }
   }, [currentIndex, processedContent, speed, isComplete]);
 

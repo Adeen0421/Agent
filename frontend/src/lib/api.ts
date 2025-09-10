@@ -24,6 +24,7 @@ export interface ApiChatResponse {
 class ApiService {
   private baseUrl = 'http://localhost:8000';
   private sessionId: string | null = null;
+  private currentAbortController: AbortController | null = null;
 
   async createSession(): Promise<SessionResponse> {
     try {
@@ -52,6 +53,14 @@ class ApiService {
       throw new Error('No active session. Please create a session first.');
     }
 
+    // Cancel any existing request
+    if (this.currentAbortController) {
+      this.currentAbortController.abort();
+    }
+
+    // Create new abort controller for this request
+    this.currentAbortController = new AbortController();
+
     try {
       const response = await fetch(`${this.baseUrl}/chat/${this.sessionId}`, {
         method: 'POST',
@@ -59,6 +68,7 @@ class ApiService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ message }),
+        signal: this.currentAbortController.signal,
       });
 
       if (!response.ok) {

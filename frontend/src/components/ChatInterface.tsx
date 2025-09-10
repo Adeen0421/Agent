@@ -91,6 +91,52 @@ export default function ChatInterface() {
     initializeSession();
   };
 
+  const handleTryAgain = async (messageId: string) => {
+    // Find the user message that corresponds to this AI response
+    const messageIndex = messages.findIndex(msg => msg.id === messageId);
+    if (messageIndex === -1) return;
+    
+    // Find the previous user message
+    let userMessageIndex = -1;
+    for (let i = messageIndex - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        userMessageIndex = i;
+        break;
+      }
+    }
+    
+    if (userMessageIndex === -1) return;
+    
+    const userMessage = messages[userMessageIndex];
+    
+    // Remove the AI response and any subsequent messages
+    setMessages(prev => prev.slice(0, messageIndex));
+    
+    // Regenerate the AI response
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await apiService.sendMessage(userMessage.content);
+      if (response.success) {
+        setMessages(prev => [...prev, response.message]);
+      } else {
+        const errorMessage: ChatMessageType = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: response.error || 'Sorry, I encountered an error. Please try again.',
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      }
+    } catch (error) {
+      setError('Failed to send message. Please try again.');
+      console.error('Failed to send message:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (isInitializing) {
     return (
       <div className="h-screen flex items-center justify-center bg-black/90">
@@ -122,7 +168,7 @@ export default function ChatInterface() {
       <div className="relative z-10 flex flex-col h-screen">
         {/* Navigation Header */}
         <nav className="flex-shrink-0 relative overflow-hidden">
-          <div className="relative z-10 px-6 py-4">
+          <div className="relative z-10 px-6 py-3">
             <div className="flex items-center justify-between max-w-none">
               {/* Logo and Brand */}
               <div className="flex items-center gap-3">
@@ -163,7 +209,7 @@ export default function ChatInterface() {
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col overflow-hidden">
           {/* Messages Container */}
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6" style={{ scrollbarGutter: 'stable' }}>
+          <div className="flex-1 overflow-y-auto px-6 py-3 space-y-6" style={{ scrollbarGutter: 'stable' }}>
             {error && (
               <div className="bg-gradient-to-r from-red-900/20 to-red-800/20 border border-red-500/30 text-red-300 px-6 py-4 rounded-xl backdrop-blur-sm mb-6">
                 <div className="flex items-center gap-3">
@@ -230,7 +276,7 @@ export default function ChatInterface() {
             {/* Messages */}
             {messages.map((message) => (
               <div key={message.id} className="message-enter">
-                <ChatMessage message={message} />
+                <ChatMessage message={message} onTryAgain={handleTryAgain} />
               </div>
             ))}
 
@@ -263,7 +309,7 @@ export default function ChatInterface() {
 
         {/* Input Section */}
         <footer className="flex-shrink-0 relative">
-          <div className="relative px-6 pt-12 pb-0">
+          <div className="relative px-6 pt-8 pb-4">
             <div className="max-w-4xl mx-auto">
               <ChatInput 
                 onSendMessage={handleSendMessage} 
