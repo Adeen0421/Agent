@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Nebula Chat - Where Intelligence Meets Infinity',
+  title: 'Ocean Chat - Where Intelligence Meets the Deep Blue',
   description: 'Explore the limitless potential of AI conversations in a cosmic interface',
 }
 

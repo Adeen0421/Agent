@@ -44,7 +44,7 @@ export default function TypewriterText({
     <span className={className}>
       {displayText}
       {!isComplete && (
-        <span className="animate-pulse text-purple-400 ml-1">|</span>
+        <span className="animate-pulse text-blue-400 ml-1">|</span>
       )}
     </span>
   );

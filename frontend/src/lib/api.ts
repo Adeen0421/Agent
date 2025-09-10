@@ -1,17 +1,14 @@
-import axios from 'axios';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
 export interface ChatMessage {
+  id: string;
   role: 'user' | 'assistant';
   content: string;
+  timestamp: Date;
+}
+
+export interface ChatResponse {
+  message: ChatMessage;
+  success: boolean;
+  error?: string;
 }
 
 export interface SessionResponse {
@@ -19,42 +16,169 @@ export interface SessionResponse {
   message: string;
 }
 
-export interface ChatResponse {
+export interface ApiChatResponse {
   response: string;
   session_id: string;
 }
 
-export interface HistoryResponse {
-  history: ChatMessage[];
-  session_id: string;
-}
+class ApiService {
+  private baseUrl = 'http://localhost:8000';
+  private sessionId: string | null = null;
 
-export class ApiService {
-  static async createSession(): Promise<SessionResponse> {
-    const response = await api.post<SessionResponse>('/session/create');
-    return response.data;
+  async createSession(): Promise<SessionResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/session/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      this.sessionId = data.session_id;
+      return data;
+    } catch (error) {
+      console.error('Error creating session:', error);
+      throw error;
+    }
   }
 
-  static async sendMessage(sessionId: string, message: string): Promise<ChatResponse> {
-    const response = await api.post<ChatResponse>(`/chat/${sessionId}`, {
-      message,
+  async sendMessage(message: string): Promise<ChatResponse> {
+    if (!this.sessionId) {
+      throw new Error('No active session. Please create a session first.');
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/chat/${this.sessionId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Backend response:', data); // Debug log
+      
+      // Handle different response formats
+      let content = '';
+      if (typeof data === 'string') {
+        content = data;
+      } else if (data.response) {
+        // Handle both string and object responses
+        if (typeof data.response === 'string') {
+          content = data.response;
+        } else if (data.response.content) {
+          content = data.response.content;
+        } else {
+          content = JSON.stringify(data.response, null, 2);
+        }
+      } else if (data.message) {
+        content = data.message;
+      } else if (data.content) {
+        content = data.content;
+      } else {
+        // If it's an object, try to extract meaningful content
+        if (data.error) {
+          content = `Error: ${data.error}`;
+        } else {
+          content = JSON.stringify(data, null, 2);
+        }
+      }
+      
+      // Clean up any JSON blocks that might be embedded in the content
+      content = this.cleanJsonBlocks(content);
+      
+      return {
+        message: {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: content,
+          timestamp: new Date(),
+        },
+        success: true,
+      };
+    } catch (error) {
+      console.error('Error sending message:', error);
+      return {
+        message: {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: 'Sorry, I encountered an error. Please try again.',
+          timestamp: new Date(),
+        },
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  getSessionId(): string | null {
+    return this.sessionId;
+  }
+
+  clearSession(): void {
+    this.sessionId = null;
+  }
+
+  private cleanJsonBlocks(content: string): string {
+    // Remove JSON code blocks that might be embedded in the response
+    // This handles cases where the backend returns content with embedded JSON blocks
+    
+    // Pattern to match ```json ... ``` blocks
+    const jsonBlockPattern = /```json\s*\n?([\s\S]*?)\n?```/g;
+    
+    // Replace JSON blocks with just the content inside
+    let cleaned = content.replace(jsonBlockPattern, (match, jsonContent) => {
+      try {
+        // Try to parse the JSON and extract meaningful content
+        const parsed = JSON.parse(jsonContent.trim());
+        if (parsed.response && parsed.response.content) {
+          return parsed.response.content;
+        } else if (parsed.content) {
+          return parsed.content;
+        } else if (parsed.message) {
+          return parsed.message;
+        }
+        // If we can't extract meaningful content, return empty string
+        return '';
+      } catch (e) {
+        // If JSON parsing fails, return empty string
+        return '';
+      }
     });
-    return response.data;
-  }
-
-  static async getHistory(sessionId: string): Promise<HistoryResponse> {
-    const response = await api.get<HistoryResponse>(`/history/${sessionId}`);
-    return response.data;
-  }
-
-  static async deleteSession(sessionId: string): Promise<void> {
-    await api.delete(`/session/${sessionId}`);
-  }
-
-  static async healthCheck(): Promise<{ message: string }> {
-    const response = await api.get('/');
-    return response.data;
+    
+    // Also handle cases where the entire response might be a JSON string
+    if (cleaned.trim().startsWith('{') && cleaned.trim().endsWith('}')) {
+      try {
+        const parsed = JSON.parse(cleaned.trim());
+        if (parsed.response && parsed.response.content) {
+          return parsed.response.content;
+        } else if (parsed.content) {
+          return parsed.content;
+        } else if (parsed.message) {
+          return parsed.message;
+        }
+      } catch (e) {
+        // If parsing fails, return original content
+      }
+    }
+    
+    return cleaned;
   }
 }
 
-export default ApiService;
+export const apiService = new ApiService();
+
+// Legacy function for backward compatibility
+export const sendMessage = async (message: string): Promise<ChatResponse> => {
+  return apiService.sendMessage(message);
+};

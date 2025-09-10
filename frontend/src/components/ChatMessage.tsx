@@ -29,34 +29,34 @@ function CodeBlock({ code, language = 'text' }: CodeBlockProps) {
   };
 
   return (
-    <div className="relative group my-4">
-      <div className="flex items-center justify-between bg-gray-800/50 border border-purple-400/20 rounded-t-lg px-4 py-2">
-        <span className="text-xs font-medium text-purple-300 uppercase">
+    <div className="relative group my-6">
+      <div className="flex items-center justify-between bg-gradient-to-r from-blue-900/40 to-cyan-900/40 border border-blue-400/30 rounded-t-lg px-4 py-3 code-block-header backdrop-blur-sm">
+        <span className="text-xs font-semibold text-cyan-200 uppercase tracking-wide">
           {language}
         </span>
         <button
           onClick={copyToClipboard}
-          className="flex items-center gap-1.5 px-2 py-1 text-xs bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-blue-600/30 hover:bg-blue-600/40 border border-blue-500/40 rounded-md transition-all duration-200 hover:scale-105"
         >
           {copied ? (
             <>
               <svg className="w-3 h-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span className="text-green-400">Copied!</span>
+              <span className="text-green-400 font-medium">Copied!</span>
             </>
           ) : (
             <>
-              <svg className="w-3 h-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
-              <span className="text-gray-300">Copy</span>
+              <span className="text-gray-200 font-medium">Copy</span>
             </>
           )}
         </button>
       </div>
-      <pre className="bg-gray-900/50 border border-purple-400/20 rounded-b-lg p-4 overflow-x-auto">
-        <code className="text-sm text-gray-200 font-mono leading-relaxed whitespace-pre">
+      <pre className="bg-gradient-to-br from-gray-900/80 to-blue-900/40 border border-blue-400/30 rounded-b-lg p-5 overflow-x-auto code-block-content backdrop-blur-sm">
+        <code className="text-sm text-gray-100 font-mono leading-relaxed whitespace-pre">
           {code}
         </code>
       </pre>
@@ -65,19 +65,24 @@ function CodeBlock({ code, language = 'text' }: CodeBlockProps) {
 }
 
 function FormattedMessage({ content }: FormattedMessageProps) {
-  // Detect code blocks first
-  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+  // First, convert literal \n to actual newlines in the content
+  const processedContent = content.replace(/\\n/g, '\n');
+  
+  // Detect code blocks first - handle both normal and escaped backticks
+  // Also handle cases where ```language appears on its own line
+  const codeBlockRegex = /```(\w+)?\s*\n([\s\S]*?)\n```/g;
   const parts = [];
   let lastIndex = 0;
   let match;
 
+
   // Find all code blocks
-  while ((match = codeBlockRegex.exec(content)) !== null) {
+  while ((match = codeBlockRegex.exec(processedContent)) !== null) {
     // Add text before code block
     if (match.index > lastIndex) {
       parts.push({
         type: 'text',
-        content: content.substring(lastIndex, match.index)
+        content: processedContent.substring(lastIndex, match.index)
       });
     }
     
@@ -92,16 +97,16 @@ function FormattedMessage({ content }: FormattedMessageProps) {
   }
   
   // Add remaining text
-  if (lastIndex < content.length) {
+  if (lastIndex < processedContent.length) {
     parts.push({
       type: 'text',
-      content: content.substring(lastIndex)
+      content: processedContent.substring(lastIndex)
     });
   }
   
   // If no code blocks found, treat entire content as text
   if (parts.length === 0) {
-    parts.push({ type: 'text', content });
+    parts.push({ type: 'text', content: processedContent });
   }
 
   const formatTextContent = (textContent: string) => {
@@ -109,9 +114,21 @@ function FormattedMessage({ content }: FormattedMessageProps) {
     const elements = [];
     let i = 0;
     
+    
+    
     const isCodeLine = (line: string) => {
       const trimmed = line.trim();
-      return trimmed.match(/^<[^>]+>$|^<!DOCTYPE|^<\w+|^<\/\w+>$|^\{|^\}$|^\w+\s*\{|^\s*\w+:.*[;}]$|^function\s|^const\s|^let\s|^var\s|^import\s|^export\s/);
+      
+      // Don't treat standalone } as code unless it's part of a larger context
+      if (trimmed === '}' || trimmed === '{') {
+        return false;
+      }
+      
+      
+      // Clear programming constructs
+      return trimmed.match(
+        /^<!DOCTYPE|^<html|^<head>|^<body>|^<\/html>|^<\/head>|^<\/body>|^<script|^<\/script>|^<style|^<\/style>|^function\s+\w+\s*\(|^const\s+\w+\s*=|^let\s+\w+\s*=|^var\s+\w+\s*=|^import\s+.*from|^export\s+(default\s+)?|^class\s+\w+|^interface\s+\w+|^type\s+\w+\s*=|^enum\s+\w+|^if\s*\(.*\)\s*\{|^for\s*\(.*\)\s*\{|^while\s*\(.*\)\s*\{|^switch\s*\(.*\)\s*\{|^document\.getElementById|^window\.|^console\.(log|error|warn)|^\s*\/\/.*|^\s*\/\*|^\s*\*\/|^\s*#include|^\s*#define|^@Component|^@Injectable|^\s*return\s+|^public\s+(class|static)|^private\s+|^protected\s+|\w+\s*\{$|\w+:\s*[\w\-#%]+;?$|^\s*[\w\-]+:\s*[\w\-#%().,\s]+;?\s*$|^<\?php|^\$\w+|^if\s*\(\$|^mail\s*\(|^\$_SERVER|^\$_POST|^strip_tags|^filter_var|^trim\s*\(/
+      );
     };
     
     while (i < lines.length) {
@@ -125,36 +142,130 @@ function FormattedMessage({ content }: FormattedMessageProps) {
         continue;
       }
       
+      // BULLET POINTS - CHECK FIRST BEFORE ANYTHING ELSE
+      if (trimmedLine.match(/^[\*\-•]\s+/) || trimmedLine.match(/^\s*[\*\-•]\s+/)) {
+        console.log('BULLET DETECTED:', trimmedLine);
+        // Remove the bullet character and any leading whitespace
+        const bulletText = trimmedLine.replace(/^[\s]*[\*\-•]\s+/, '').trim();
+        const formattedBullet = bulletText.replace(/\*\*(.*?)\*\*/g, '<span class="font-semibold text-cyan-200">$1</span>');
+        elements.push(
+          <div key={i} className="bullet-point">
+            <div className="bullet-marker" />
+            <div 
+              className="bullet-content" 
+              dangerouslySetInnerHTML={{ __html: formattedBullet }}
+            />
+          </div>
+        );
+        i++;
+        continue;
+      }
+      
+      // Check for orphaned ```language lines that should start a code block
+      if (trimmedLine.match(/^```\w+$/)) {
+        const language = trimmedLine.replace('```', '');
+        const codeLines = [];
+        let j = i + 1;
+        
+        // Collect lines until we find closing ```
+        while (j < lines.length) {
+          const nextLine = lines[j];
+          if (nextLine.trim() === '```') {
+            break;
+          }
+          codeLines.push(nextLine);
+          j++;
+        }
+        
+        if (codeLines.length > 0) {
+          const codeContent = codeLines.join('\n');
+          elements.push(
+            <div key={i} className="my-3">
+              <CodeBlock code={codeContent} language={language} />
+            </div>
+          );
+          i = j + 1; // Skip past the closing ```
+          continue;
+        }
+      }
+      
       // Check for code blocks (group consecutive code lines)
       if (isCodeLine(line)) {
         const codeLines = [line];
         let j = i + 1;
+        let braceCount = (line.match(/\{/g) || []).length - (line.match(/\}/g) || []).length;
         
-        // Collect consecutive code lines
-        while (j < lines.length && (isCodeLine(lines[j]) || lines[j].trim() === '')) {
-          codeLines.push(lines[j]);
-          j++;
+        // Collect consecutive code lines and related content
+        while (j < lines.length) {
+          const nextLine = lines[j];
+          const nextTrimmed = nextLine.trim();
+          
+          // Update brace count
+          braceCount += (nextLine.match(/\{/g) || []).length - (nextLine.match(/\}/g) || []).length;
+          
+          // Include if it's a code line, empty line, or structural elements like } and {
+          if (isCodeLine(nextLine) || 
+              nextTrimmed === '' ||
+              nextTrimmed === '}' || 
+              nextTrimmed === '{' ||
+              (nextTrimmed.includes(':') && nextTrimmed.includes(';')) ||
+              (braceCount > 0 && nextTrimmed.length > 0)) {
+            codeLines.push(nextLine);
+            j++;
+            
+            // If we've closed all braces, we might be done with this code block
+            if (braceCount === 0 && (nextTrimmed === '}' || nextTrimmed.includes('}'))) {
+              // Look ahead to see if there's more related code
+              if (j < lines.length && lines[j].trim() !== '' && !isCodeLine(lines[j])) {
+                break;
+              }
+            }
+          } else {
+            break;
+          }
         }
         
         const codeContent = codeLines.join('\n').trim();
-        const language = detectLanguage(codeContent);
+        const hasMultipleCodeLines = codeLines.filter(l => isCodeLine(l) || l.trim() === '}' || l.trim() === '{').length >= 2;
+        const hasStrongCodeIndicators = codeContent.includes('function') || 
+                                       codeContent.includes('<!DOCTYPE') || 
+                                       codeContent.includes('<script') ||
+                                       codeContent.includes('const ') ||
+                                       codeContent.includes('import ') ||
+                                       /\w+\s*\{/.test(codeContent) ||
+                                       /\w+:\s*[^;]+;/.test(codeContent);
         
-        elements.push(
-          <div key={i} className="my-3">
-            <CodeBlock code={codeContent} language={language} />
-          </div>
-        );
+        // Simple check - don't treat as code if it contains markdown or looks like explanation
+        const looksLikeText = codeContent.includes('**') ||
+                             /^[A-Z][a-z\s,]+.*[.!?]/.test(codeContent.split('\n')[0]);
         
-        i = j;
-        continue;
+        if ((hasMultipleCodeLines || hasStrongCodeIndicators || codeContent.includes('{')) && !looksLikeText) {
+          const language = detectLanguage(codeContent);
+          
+          elements.push(
+            <div key={i} className="my-3">
+              <CodeBlock code={codeContent} language={language} />
+            </div>
+          );
+          
+          i = j;
+          continue;
+        } else {
+          // Treat as regular text if it doesn't meet code block criteria
+          elements.push(
+            <p key={i} className="text-gray-200 leading-relaxed my-1">
+              {trimmedLine}
+            </p>
+          );
+        }
       }
       
-      // Main headers (lines with **text:**** pattern)
-      if (trimmedLine.includes('**') && (trimmedLine.includes(':**') || trimmedLine.includes('Cars:**'))) {
+      // Main headers (lines with **text:**** pattern or numbered sections)
+      else if (trimmedLine.includes('**') && (trimmedLine.includes(':**') || trimmedLine.match(/\*\*\d+\./))) {
         const headerText = trimmedLine.replace(/\*\*(.*?):\*\*/g, '$1').replace(/\*\*(.*?)\*\*/g, '$1');
         elements.push(
-          <div key={i} className="mt-4 mb-3">
-            <h2 className="text-lg font-bold text-purple-200 border-b border-purple-400/30 pb-2">
+          <div key={i} className="mt-6 mb-4">
+            <h2 className="text-xl font-bold text-white border-b border-blue-400/40 pb-2 mb-3">
               {headerText}
             </h2>
           </div>
@@ -164,38 +275,44 @@ function FormattedMessage({ content }: FormattedMessageProps) {
       else if (trimmedLine.includes('**')) {
         const parts = trimmedLine.split(/\*\*(.*?)\*\*/g);
         elements.push(
-          <div key={i} className="my-2">
+          <div key={i} className="my-3">
             {parts.map((part, partIndex) => {
               if (partIndex % 2 === 1) {
                 return (
-                  <span key={partIndex} className="font-semibold text-blue-200">
+                  <span key={partIndex} className="font-semibold text-cyan-200">
                     {part}
                   </span>
                 );
               }
-              return <span key={partIndex} className="text-gray-200">{part}</span>;
+              return <span key={partIndex} className="text-gray-100">{part}</span>;
             })}
           </div>
         );
       }
-      // Bullet points (lines starting with * or - followed by space)
-      else if (trimmedLine.match(/^[\*\-]\s+/)) {
-        const bulletText = trimmedLine.replace(/^[\*\-]\s+/, '');
-        const formattedBullet = bulletText.replace(/\*\*(.*?)\*\*/g, '<span class="font-semibold text-blue-200">$1</span>');
-        elements.push(
-          <div key={i} className="flex items-start gap-3 ml-2 my-2">
-            <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0" />
-            <div 
-              className="text-gray-200 leading-relaxed flex-1" 
-              dangerouslySetInnerHTML={{ __html: formattedBullet }}
-            />
-          </div>
-        );
+      // Numbered lists (lines starting with number followed by period and space) - use bullet logo
+      else if (trimmedLine.match(/^\d+\.\s+/)) {
+        const numberMatch = trimmedLine.match(/^(\d+)\.\s+(.*)/);
+        if (numberMatch) {
+          const listText = numberMatch[2];
+          const formattedText = listText.replace(/\*\*(.*?)\*\*/g, '<span class="font-semibold text-cyan-200">$1</span>');
+          elements.push(
+            <div key={i} className="bullet-point">
+              <div className="bullet-marker" />
+              <div 
+                className="bullet-content" 
+                dangerouslySetInnerHTML={{ __html: formattedText }}
+              />
+            </div>
+          );
+        }
       }
       // Regular paragraphs
       else {
+        if (trimmedLine.includes('*')) {
+          console.log('REGULAR PARAGRAPH WITH ASTERISK:', trimmedLine);
+        }
         elements.push(
-          <p key={i} className="text-gray-200 leading-relaxed my-1">
+          <p key={i} className="text-gray-100 leading-relaxed my-2 text-base">
             {trimmedLine}
           </p>
         );
@@ -208,15 +325,59 @@ function FormattedMessage({ content }: FormattedMessageProps) {
   };
   
   const detectLanguage = (code: string) => {
-    if (code.includes('<!DOCTYPE') || code.includes('<html') || code.includes('<div') || code.includes('<p>')) return 'html';
-    if (code.includes('function') || code.includes('const ') || code.includes('let ') || code.includes('=>')) return 'javascript';
-    if (code.includes('def ') || code.includes('import ') || code.includes('print(')) return 'python';
-    if (code.includes('#include') || code.includes('int main')) return 'c';
-    if (code.includes('public class') || code.includes('public static')) return 'java';
-    if (code.includes('{') && code.includes(':') && code.includes(';')) return 'css';
+    // More comprehensive language detection with priority order
+    const lowerCode = code.toLowerCase();
+    
+    // HTML detection (highest priority for complete documents)
+    if (code.includes('<!DOCTYPE') || (code.includes('<html') && code.includes('</html>')) || 
+        (code.includes('<head>') && code.includes('<body>'))) return 'html';
+    
+    // Mixed HTML/CSS/JS detection (for full pages)
+    if ((code.includes('<style>') || code.includes('<script>')) && 
+        (code.includes('<div') || code.includes('<form') || code.includes('<input'))) return 'html';
+    
+    // JavaScript detection (before CSS to catch JS with CSS-like syntax)
+    if (code.includes('function') || code.includes('const ') || code.includes('let ') || code.includes('=>') ||
+        code.includes('document.') || code.includes('addEventListener') || code.includes('getElementById') ||
+        code.includes('event.preventDefault') || /\.\w+\(/.test(code)) return 'javascript';
+    
+    // CSS detection (style blocks, property-value pairs)
+    if ((code.includes('{') && code.includes(':') && code.includes(';')) || 
+        /\w+\s*:\s*[^;]+;/.test(code) || lowerCode.includes('border-radius') || 
+        lowerCode.includes('background-color') || code.includes('px;') ||
+        code.includes('margin:') || code.includes('padding:') || code.includes('display:') ||
+        lowerCode.includes('font-family') || lowerCode.includes('text-align') ||
+        code.includes('color:') || code.includes('width:') || code.includes('height:')) return 'css';
+    
+    // HTML fragments
+    if (code.includes('<div') || code.includes('<p>') || code.includes('<form') || 
+        /^<\w+/.test(code.trim()) || /<\/\w+>$/.test(code.trim())) return 'html';
+    
+    // PHP detection
+    if (code.includes('<?php') || code.includes('$_SERVER') || code.includes('$_POST') ||
+        /^\$\w+/.test(code) || code.includes('strip_tags') || code.includes('filter_var')) return 'php';
+    
+    // Python detection
+    if (code.includes('def ') || code.includes('import ') || code.includes('print(') || 
+        code.includes('elif ') || /^\s*#/.test(code)) return 'python';
+    
+    // C/C++ detection
+    if (code.includes('#include') || code.includes('int main') || code.includes('printf')) return 'c';
+    
+    // Java detection
+    if (code.includes('public class') || code.includes('public static') || code.includes('System.out')) return 'java';
+    
+    // Shell/Bash detection
+    if (code.includes('#!/bin') || /^\$\s/.test(code) || code.includes('echo ')) return 'bash';
+    
+    // JSON detection - only for actual API/config data
+    if (code.trim().startsWith('{') && code.includes('"') && code.includes(':') &&
+        (code.includes('"api"') || code.includes('"config"') || code.includes('"schema"'))) return 'json';
+    
     return 'text';
   };
   
+
   return (
     <div className="space-y-2">
       {parts.map((part, index) => {
@@ -246,12 +407,12 @@ export default function ChatMessage({ message }: ChatMessageProps) {
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-6`}>
       <div className={`flex gap-3 max-w-[80%] ${isUser ? 'flex-row-reverse' : 'flex-row'} items-start`}>
-        {/* Avatar */}
+        {/* Avatar - positioned to align with the message bubble */}
         <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
           isUser 
-            ? 'bg-gradient-to-br from-purple-500 via-blue-500 to-indigo-600 glow shadow-lg shadow-purple-500/40'
-            : 'bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 border border-purple-400/30 shadow-lg shadow-indigo-500/40'
-        }`}>
+            ? 'bg-gradient-to-br from-blue-500 via-cyan-500 to-teal-600 glow shadow-lg shadow-blue-500/40 avatar-user'
+            : 'bg-gradient-to-br from-cyan-600 via-blue-600 to-teal-600 border border-blue-400/30 shadow-lg shadow-cyan-500/40 avatar-assistant'
+        }`} style={{ marginTop: '1.25rem' }}>
           {isUser ? (
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -264,14 +425,14 @@ export default function ChatMessage({ message }: ChatMessageProps) {
         </div>
         
         {/* Message Content */}
-        <div className="flex flex-col gap-1">
-          <div className="text-xs font-medium text-purple-400/80">
-            {isUser ? 'You' : 'Nebula AI'}
+        <div className="flex flex-col gap-2 min-w-0 flex-1">
+          <div className="text-xs font-medium text-blue-300/70">
+            {isUser ? 'You' : 'Ocean AI'}
           </div>
-          <div className={`rounded-2xl px-5 py-4 ${
+          <div className={`rounded-2xl px-6 py-5 ${
             isUser
-              ? 'bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-600 text-white shadow-xl shadow-purple-500/30'
-              : 'glass border border-purple-400/20 text-gray-100 bg-gradient-to-br from-indigo-900/20 to-purple-900/20'
+              ? 'bg-gradient-to-br from-blue-600 via-cyan-600 to-teal-600 text-white shadow-xl shadow-blue-500/30 message-user'
+              : 'glass border border-blue-400/30 text-gray-50 bg-gradient-to-br from-blue-900/30 to-cyan-900/30 message-assistant backdrop-blur-xl'
           }`}>
             <div className={`break-words leading-relaxed ${
               isUser ? 'whitespace-pre-wrap' : 'formatted-content'

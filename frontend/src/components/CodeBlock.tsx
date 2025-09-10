@@ -22,13 +22,13 @@ export default function CodeBlock({ code, language = 'text' }: CodeBlockProps) {
 
   return (
     <div className="relative group my-4">
-      <div className="flex items-center justify-between bg-gray-800/50 border border-purple-400/20 rounded-t-lg px-4 py-2">
-        <span className="text-xs font-medium text-purple-300 uppercase">
+      <div className="flex items-center justify-between bg-gray-800/50 border border-blue-400/20 rounded-t-lg px-4 py-2">
+        <span className="text-xs font-medium text-blue-300 uppercase">
           {language}
         </span>
         <button
           onClick={copyToClipboard}
-          className="flex items-center gap-1.5 px-2 py-1 text-xs bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded transition-colors"
+          className="flex items-center gap-1.5 px-2 py-1 text-xs bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded transition-colors"
         >
           {copied ? (
             <>
@@ -47,7 +47,7 @@ export default function CodeBlock({ code, language = 'text' }: CodeBlockProps) {
           )}
         </button>
       </div>
-      <pre className="bg-gray-900/50 border border-purple-400/20 rounded-b-lg p-4 overflow-x-auto">
+      <pre className="bg-gray-900/50 border border-blue-400/20 rounded-b-lg p-4 overflow-x-auto">
         <code className="text-sm text-gray-200 font-mono leading-relaxed whitespace-pre">
           {code}
         </code>

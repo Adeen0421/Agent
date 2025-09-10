@@ -12,10 +12,34 @@ sys.path.append(str(Path(__file__).parent.parent))
 from src.agent import SimpleAgent
 from dotenv import load_dotenv
 
+# Import enhanced routes - try to import, if fails, create minimal fallback
+try:
+    from backend.app.enhanced_routes import router as enhanced_router, compat_router
+    enhanced_routes_available = True
+except ImportError:
+    print("⚠️ Enhanced routes not available, running in basic mode")
+    enhanced_routes_available = False
+    enhanced_router = None
+    compat_router = None
+
 # Load environment variables
 load_dotenv()
 
-app = FastAPI(title="AI Agent API", version="1.0.0")
+app = FastAPI(
+    title="Nebula AI Agent API", 
+    version="2.0.0",
+    description="Enhanced AI Agent with MongoDB Memory, Guardrails, and Structured Output"
+)
+
+# Include enhanced routes if available
+if enhanced_routes_available and enhanced_router and compat_router:
+    app.include_router(enhanced_router)  # /api/v2/* routes
+    app.include_router(compat_router)    # Backward compatibility routes
+    print("✅ Enhanced routes loaded successfully")
+    print("✅ Backward compatibility routes enabled")
+else:
+    print("⚠️ Running in basic mode - enhanced features not available")
+    # Don't include enhanced routes when not available to avoid conflicts
 
 # Enable CORS for frontend communication
 app.add_middleware(
@@ -47,7 +71,21 @@ class HistoryResponse(BaseModel):
 @app.get("/")
 async def root():
     """Health check endpoint"""
-    return {"message": "AI Agent API is running"}
+    return {
+        "message": "Nebula AI Agent API is running",
+        "version": "2.0.0",
+        "features": {
+            "basic_chat": "Available at /api/v1",
+            "enhanced_chat": "Available at /api/v2", 
+            "mongodb_memory": "Persistent conversation storage",
+            "guardrails": "Input/output safety filters",
+            "structured_prompts": "Enhanced prompt engineering"
+        },
+        "endpoints": {
+            "basic": "/docs (v1 endpoints)",
+            "enhanced": "/api/v2/health (enhanced system)"
+        }
+    }
 
 @app.post("/session/create", response_model=SessionResponse)
 async def create_session():
