@@ -42,9 +42,21 @@ else:
     # Don't include enhanced routes when not available to avoid conflicts
 
 # Enable CORS for frontend communication
+import os
+allowed_origins = [
+    "http://localhost:3000", 
+    "http://localhost:5173",
+    "https://*.vercel.app",  # Vercel preview deployments
+    "https://your-app-name.vercel.app"  # Replace with your actual Vercel URL
+]
+
+# Add production origins from environment
+if os.getenv("FRONTEND_URL"):
+    allowed_origins.append(os.getenv("FRONTEND_URL"))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # Next.js and Vite dev servers
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

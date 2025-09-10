@@ -8,6 +8,8 @@ import { FaThumbsUp, FaThumbsDown, FaCopy, FaRedo, FaShare } from 'react-icons/f
 interface ChatMessageProps {
   message: ChatMessageType;
   onTryAgain?: (messageId: string) => void;
+  shouldStopAnimation?: boolean;
+  onAnimationComplete?: () => void;
 }
 
 interface FormattedMessageProps {
@@ -405,7 +407,7 @@ function FormattedMessage({ content }: FormattedMessageProps) {
   );
 }
 
-export default function ChatMessage({ message, onTryAgain }: ChatMessageProps) {
+export default function ChatMessage({ message, onTryAgain, shouldStopAnimation = false, onAnimationComplete }: ChatMessageProps) {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
   const [liked, setLiked] = useState(false);
@@ -442,6 +444,11 @@ export default function ChatMessage({ message, onTryAgain }: ChatMessageProps) {
     if (onTryAgain) {
       onTryAgain(message.id);
     }
+  };
+
+  const handleAnimationComplete = () => {
+    setIsAnimationComplete(true);
+    onAnimationComplete?.();
   };
 
   const handleShare = () => {
@@ -487,7 +494,8 @@ export default function ChatMessage({ message, onTryAgain }: ChatMessageProps) {
                 <AnimatedFormattedMessage 
                   content={message.content} 
                   speed={10} 
-                  onComplete={() => setIsAnimationComplete(true)}
+                  onComplete={handleAnimationComplete}
+                  shouldStop={shouldStopAnimation}
                 />
               )}
             </div>

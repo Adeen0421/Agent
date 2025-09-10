@@ -22,7 +22,7 @@ export interface ApiChatResponse {
 }
 
 class ApiService {
-  private baseUrl = 'http://localhost:8000';
+  private baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   private sessionId: string | null = null;
   private currentAbortController: AbortController | null = null;
 
@@ -107,6 +107,9 @@ class ApiService {
       // Clean up any JSON blocks that might be embedded in the content
       content = this.cleanJsonBlocks(content);
       
+      // Clear the abort controller since request completed successfully
+      this.currentAbortController = null;
+
       return {
         message: {
           id: Date.now().toString(),
@@ -118,6 +121,24 @@ class ApiService {
       };
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // Clear the abort controller
+      this.currentAbortController = null;
+      
+      // Check if the error was due to abort
+      if (error instanceof Error && error.name === 'AbortError') {
+        return {
+          message: {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: 'Request cancelled.',
+            timestamp: new Date(),
+          },
+          success: false,
+          error: 'Request was cancelled',
+        };
+      }
+      
       return {
         message: {
           id: Date.now().toString(),
@@ -137,6 +158,13 @@ class ApiService {
 
   clearSession(): void {
     this.sessionId = null;
+  }
+
+  cancelCurrentRequest(): void {
+    if (this.currentAbortController) {
+      this.currentAbortController.abort();
+      this.currentAbortController = null;
+    }
   }
 
   private cleanJsonBlocks(content: string): string {

@@ -7,12 +7,14 @@ interface AnimatedFormattedMessageProps {
   content: string;
   speed?: number;
   onComplete?: () => void;
+  shouldStop?: boolean;
 }
 
 export default function AnimatedFormattedMessage({ 
   content, 
   speed = 10,
-  onComplete
+  onComplete,
+  shouldStop = false
 }: AnimatedFormattedMessageProps) {
   const [displayedContent, setDisplayedContent] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -37,6 +39,16 @@ export default function AnimatedFormattedMessage({
       onComplete?.();
     }
   }, [currentIndex, processedContent, speed, isComplete]);
+
+  // Handle stop signal - immediately show full content
+  useEffect(() => {
+    if (shouldStop && !isComplete) {
+      setDisplayedContent(processedContent);
+      setCurrentIndex(processedContent.length);
+      setIsComplete(true);
+      onComplete?.();
+    }
+  }, [shouldStop, isComplete, processedContent, onComplete]);
 
   // Reset when content changes
   useEffect(() => {
@@ -342,7 +354,7 @@ export default function AnimatedFormattedMessage({
       {!isComplete && (
         <div className="flex items-center gap-2">
           <div className="w-1 h-4 bg-blue-400 animate-pulse" />
-          <span className="text-blue-400 text-sm animate-pulse">AI is typing...</span>
+          <span className="text-blue-400 text-sm animate-pulse">Generating...</span>
         </div>
       )}
     </div>

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
+import ProcessingSquare from './ProcessingSquare';
 import { ChatMessage as ChatMessageType, apiService } from '@/lib/api';
 
 export default function ChatInterface() {
@@ -10,6 +11,8 @@ export default function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [shouldStopAnimation, setShouldStopAnimation] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -57,7 +60,9 @@ export default function ChatInterface() {
 
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
+    setIsGenerating(true);
     setError(null);
+    setShouldStopAnimation(false);
 
     try {
       const response = await apiService.sendMessage(content);
@@ -81,13 +86,27 @@ export default function ChatInterface() {
       setMessages(prev => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
+      // Keep isGenerating true until animation completes
     }
+  };
+
+  const handleStopGeneration = () => {
+    apiService.cancelCurrentRequest();
+    setIsLoading(false);
+    setIsGenerating(false);
+    setShouldStopAnimation(true);
+  };
+
+  const handleAnimationComplete = () => {
+    setIsGenerating(false);
   };
 
   const handleNewSession = () => {
     setMessages([]);
     apiService.clearSession();
     setError(null);
+    setShouldStopAnimation(false);
+    setIsGenerating(false);
     initializeSession();
   };
 
@@ -114,7 +133,9 @@ export default function ChatInterface() {
     
     // Regenerate the AI response
     setIsLoading(true);
+    setIsGenerating(true);
     setError(null);
+    setShouldStopAnimation(false);
     
     try {
       const response = await apiService.sendMessage(userMessage.content);
@@ -134,6 +155,7 @@ export default function ChatInterface() {
       console.error('Failed to send message:', error);
     } finally {
       setIsLoading(false);
+      // Keep isGenerating true until animation completes
     }
   };
 
@@ -276,27 +298,39 @@ export default function ChatInterface() {
             {/* Messages */}
             {messages.map((message) => (
               <div key={message.id} className="message-enter">
-                <ChatMessage message={message} onTryAgain={handleTryAgain} />
+                <ChatMessage 
+                  message={message} 
+                  onTryAgain={handleTryAgain}
+                  shouldStopAnimation={shouldStopAnimation && message.id === messages[messages.length - 1]?.id}
+                  onAnimationComplete={message.id === messages[messages.length - 1]?.id ? handleAnimationComplete : undefined}
+                />
               </div>
             ))}
 
             {isLoading && (
-              <div className="flex justify-start message-enter">
-                <div className="glass rounded-2xl px-6 py-4 max-w-[70%] border border-blue-500/20">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-600 via-blue-600 to-teal-600 flex items-center justify-center shadow-lg shadow-cyan-500/40">
-                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                      </svg>
-                    </div>
-                    <span className="text-sm font-medium text-blue-300">Ocean AI</span>
+              <div className="flex justify-start mb-6 message-enter">
+                <div className="flex gap-3 max-w-[80%] flex-row items-start">
+                  {/* Avatar - positioned to align with the message bubble */}
+                  <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center self-start bg-gradient-to-br from-cyan-600 via-blue-600 to-teal-600 border border-blue-400/30 shadow-lg shadow-cyan-500/40 avatar-assistant" style={{ marginTop: '1.5rem' }}>
+                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-blue-400">Thinking</span>
-                    <div className="typing-indicator">
-                      <div className="typing-dot"></div>
-                      <div className="typing-dot"></div>
-                      <div className="typing-dot"></div>
+                  
+                  {/* Message Content */}
+                  <div className="flex flex-col gap-2 min-w-0 flex-1">
+                    <div className="text-xs font-medium text-blue-300/70">
+                      Ocean AI
+                    </div>
+                    <div className="glass border border-blue-400/30 text-gray-50 bg-gradient-to-br from-blue-900/30 to-cyan-900/30 message-assistant backdrop-blur-xl rounded-2xl px-6 py-5">
+                      <div className="flex items-center gap-3">
+                        <span className="text-blue-400">Processing</span>
+                        <div className="typing-indicator">
+                          <div className="typing-dot"></div>
+                          <div className="typing-dot"></div>
+                          <div className="typing-dot"></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -313,7 +347,8 @@ export default function ChatInterface() {
             <div className="max-w-4xl mx-auto">
               <ChatInput 
                 onSendMessage={handleSendMessage} 
-                isLoading={isLoading || !apiService.getSessionId()} 
+                onStopGeneration={handleStopGeneration}
+                isLoading={isGenerating || !apiService.getSessionId()} 
               />
             </div>
           </div>
