@@ -65,33 +65,49 @@ if errorlevel 1 (
     )
 )
 
+REM Verify Node.js
+echo 🔍 Verifying Node.js installation...
+node --version >nul 2>&1
+if errorlevel 1 (
+    echo ❌ Node.js not found!
+    echo ⚠️  Please install Node.js to run the frontend.
+    pause
+    exit /b 1
+)
+
+REM Check Frontend dependencies
+if not exist "frontend\node_modules" (
+    echo � Installing frontend dependencies...
+    cd frontend
+    call npm install
+    if errorlevel 1 (
+        echo ❌ Failed to install frontend dependencies
+        pause
+        exit /b 1
+    )
+    cd ..
+)
+
 echo ✅ Dependencies OK
 echo.
 
-REM Start the enhanced backend
-echo 📡 Starting Enhanced Backend Server...
-echo 🔥 API: http://localhost:8000/docs
-echo 🚀 Health: http://localhost:8000/api/v2/health
+REM Start the enhanced system
+echo 📡 Starting Enhanced AI System...
+echo ----------------------------------------
+echo 1. Launching Backend Server (Port 8000)
+echo 2. Launching Frontend Application (Port 3000)
 echo.
 
-cd backend
+REM Start Backend in new window
+start "Nebula Backend" cmd /k "cd backend && (uvicorn main:app --host 0.0.0.0 --port 8000 --reload || python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload || python main.py)"
 
-REM Try uvicorn first, fallback to python module execution
-echo 🚀 Starting server with uvicorn...
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-if errorlevel 1 (
-    echo.
-    echo ⚠️ uvicorn command failed, trying python -m uvicorn...
-    echo.
-    python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-    if errorlevel 1 (
-        echo.
-        echo ⚠️ python -m uvicorn failed, trying python main.py...
-        echo.
-        python main.py
-    )
-)
+REM Start Frontend in new window
+start "Nebula Frontend" cmd /k "cd frontend && npm run dev"
 
 echo.
-echo 👋 Server stopped
+echo ✅ Services launched!
+echo 📡 Backend API: http://localhost:8000/docs
+echo 💻 Frontend UI: http://localhost:3000
+echo.
+echo 👋 You can close this window now. The servers will keep running.
 pause

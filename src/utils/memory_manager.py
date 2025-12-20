@@ -67,7 +67,11 @@ class MongoMemoryManager:
             print(f"✅ MongoDB connected successfully to {database_name}")
             
         except (ConnectionFailure, ServerSelectionTimeoutError) as e:
-            print(f"❌ MongoDB connection failed: {str(e)}")
+            error_msg = str(e)
+            if "actively refused" in error_msg or "10061" in error_msg:
+                print("⚠️ MongoDB not running (connection refused).")
+            else:
+                print(f"❌ MongoDB connection failed: {error_msg}")
             print("🔧 Falling back to in-memory storage...")
             self.client = None
             self.db = None
